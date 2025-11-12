@@ -197,6 +197,12 @@ export class SimpleCrypto {
     localStorage.removeItem('RSA_PRIVATE');
     console.log('🧹 All keys cleared');
   }
+  
+  // Clear only session data (keep all encryption keys for account persistence)
+  static clearSessionKeys() {
+    // Don't clear any crypto keys - only auth session is cleared
+    console.log('🧹 Session cleared (encryption keys preserved)');
+  }
 }
 
 window.SimpleCrypto = SimpleCrypto;

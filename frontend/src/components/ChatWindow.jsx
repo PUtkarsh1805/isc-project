@@ -18,6 +18,13 @@ function ChatWindow({ user, onLogout }) {
   useEffect(() => {
     if (activeConversation) {
       loadMessages(activeConversation.contact_username);
+      
+      // Auto-refresh messages every 3 seconds
+      const interval = setInterval(() => {
+        loadMessages(activeConversation.contact_username);
+      }, 3000);
+      
+      return () => clearInterval(interval);
     }
   }, [activeConversation]);
 

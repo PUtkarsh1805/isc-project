@@ -116,9 +116,9 @@ function App() {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('username');
       
-      // Clear simple crypto keys
+      // Clear only session keys (keep RSA keys)
       const { SimpleCrypto } = await import('./utils/simple-crypto');
-      SimpleCrypto.clearAll();
+      SimpleCrypto.clearSessionKeys();
       
       setUser(null);
       setCurrentView('login');
