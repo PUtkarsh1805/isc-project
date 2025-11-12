@@ -5,20 +5,22 @@ A secure, end-to-end encrypted chat application built with React and Python Flas
 ## 🚀 Features
 
 - **🔐 End-to-End Encryption**: Messages are encrypted using AES-256-GCM on the client side
-- **🔑 RSA Key Exchange**: Secure key exchange using RSA-2048 encryption
-- **👤 User Authentication**: Secure registration and login system
+- **🔑 RSA Key Exchange**: Secure session key exchange using RSA-2048 encryption
+- **👤 User Authentication**: Secure registration and login with session tokens
 - **💬 Real-time Messaging**: Send and receive encrypted messages instantly
 - **🔍 User Search**: Find and start conversations with other users
 - **📱 Responsive Design**: Works on desktop and mobile devices
 - **🛡️ Zero Server Access**: Server never sees plaintext messages or private keys
+- **🔄 Automatic Key Exchange**: Encrypted session keys sent with first message
 
 ## 🏗️ Architecture
 
 ### Security Model
 - **Client-side Encryption**: All encryption/decryption happens in the browser using Web Crypto API
-- **Hybrid Cryptography**: RSA for key exchange + AES-GCM for message encryption
+- **Hybrid Cryptography**: RSA-2048 for key exchange + AES-256-GCM for message encryption
 - **Key Management**: Private keys stored only in browser localStorage, never transmitted
-- **Perfect Forward Secrecy**: Each conversation uses unique session keys
+- **Session Key Sharing**: Master AES key encrypted with recipient's public RSA key
+- **Automatic Decryption**: Receivers automatically decrypt session keys using their private RSA key
 
 ### Tech Stack
 - **Frontend**: React 18 + Vite (Web Crypto API for encryption)
@@ -28,16 +30,18 @@ A secure, end-to-end encrypted chat application built with React and Python Flas
   - RSA-2048 for asymmetric key exchange
   - AES-256-GCM for symmetric message encryption
   - SHA-256 for key derivation and hashing
+  - PBKDF2 for key derivation in simplified crypto
 
 ## 📁 Project Structure
 
 ```
-encrypted-chat/
+isc/
 ├── backend/
 │   ├── app.py              # Flask application entry point
 │   ├── database.py         # SQLite database operations
 │   ├── requirements.txt    # Python dependencies
 │   ├── .env.example       # Environment variables template
+│   ├── chat.db            # SQLite database (auto-generated)
 │   └── routes/
 │       ├── auth.py        # Authentication endpoints
 │       └── chat.py        # Chat and messaging endpoints
@@ -55,11 +59,11 @@ encrypted-chat/
 │   │   │   ├── ChatWindow.jsx
 │   │   │   └── ContactList.jsx
 │   │   └── utils/         # Utility functions
-│   │       ├── crypto.js  # Encryption utilities
-│   │       └── api.js     # API client
+│   │       ├── simple-crypto.js  # Simplified E2EE implementation (active)
+│   │       ├── crypto.js         # Complex crypto utilities
+│   │       ├── simpleCrypto.js   # Alternative crypto (for testing)
+│   │       └── api.js            # Axios API client
 │   └── public/            # Static assets
-├── .github/
-│   └── copilot-instructions.md
 └── README.md
 ```
 
@@ -88,16 +92,15 @@ cd backend
 
 # Create and activate virtual environment (optional but recommended)
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\\Scripts\\activate
+# On Windows:
+venv\Scripts\activate
+# On Unix/MacOS:
+source venv/bin/activate
 
 # Install Python dependencies
 pip install -r requirements.txt
 
-# Copy environment variables template
-copy .env.example .env  # On Unix: cp .env.example .env
-
-# Edit .env file and set your configuration
-# At minimum, change the SECRET_KEY to a secure random string
+# The database (chat.db) will be created automatically on first run
 ```
 
 ### 3. Frontend Setup
@@ -131,58 +134,77 @@ Open your browser and navigate to `http://localhost:3000`
 
 ## 🔐 Cryptographic Implementation
 
-### Key Generation and Exchange
+### Current Implementation: SimpleCrypto
+
+The application uses a **simplified master key approach** for easier key management:
 
 1. **User Registration**:
    - Client generates RSA-2048 key pair using Web Crypto API
-   - Public key sent to server for storage
-   - Private key stored only in browser localStorage
+   - Client generates a random AES-256 master key
+   - RSA public key sent to server for storage
+   - RSA private key and AES master key stored only in browser localStorage
 
 2. **Starting a Conversation**:
-   - Client fetches recipient's public key from server
-   - Generates AES-256 session key for the conversation
-   - Session key encrypted with recipient's RSA public key
-   - Encrypted session key could be sent via initial message (not implemented in this version)
+   - Sender fetches recipient's public RSA key from server
+   - Sender encrypts their AES master key with recipient's public RSA key
+   - Encrypted master key sent along with the first message
+
+3. **Receiving Messages**:
+   - Recipient receives encrypted master key from sender
+   - Recipient decrypts master key using their RSA private key
+   - Recipient stores decrypted master key for future message decryption
+   - All subsequent messages from that sender use the same master key
 
 ### Message Encryption Flow
 
 ```
 Sender                          Server                     Receiver
   |                               |                          |
-  |-- Generate AES session key ---|                          |
-  |-- Encrypt message with AES ---|-- Store ciphertext ---> |
-  |                               |                          |-- Decrypt with AES --|
+  |-- Generate AES master key ----|                          |
+  |-- Encrypt msg with AES -------|                          |
+  |-- Encrypt master key w/ RSA --|                          |
+  |-- Send both to server ------->|-- Store encrypted --->   |
+  |                               |                          |-- Decrypt master key (RSA) --|
+  |                               |                          |-- Decrypt message (AES) -----|
 ```
 
 #### Detailed Encryption Process:
 
 1. **Message Encryption** (Sender):
    ```javascript
-   // Generate or retrieve AES session key
-   const sessionKey = await generateAESKey();
-   
-   // Encrypt message
+   // SimpleCrypto.encrypt(message)
+   const masterKey = await getMasterKey(); // Get or generate AES-256 key
    const iv = crypto.getRandomValues(new Uint8Array(12));
    const encrypted = await crypto.subtle.encrypt(
      { name: 'AES-GCM', iv: iv },
-     sessionKey,
+     masterKey,
      messageText
    );
+   
+   // Encrypt master key for recipient
+   const encryptedMasterKey = await encryptKeyFor(recipientUsername);
    ```
 
 2. **Server Storage**:
-   - Server receives only: `{sender, receiver, encrypted_content, iv}`
+   - Server receives: `{sender, receiver, encrypted_content, iv, encrypted_session_key}`
+   - Database stores only encrypted data
    - No access to plaintext message or encryption keys
 
 3. **Message Decryption** (Receiver):
    ```javascript
-   // Retrieve AES session key from localStorage
-   const sessionKey = await getSessionKey(senderUsername);
+   // SimpleCrypto.decryptAndStoreSessionKey(encryptedKey)
+   const privateKey = await getRSAKeys(); // Get RSA private key
+   const masterKeyBytes = await crypto.subtle.decrypt(
+     { name: 'RSA-OAEP' },
+     privateKey,
+     encryptedSessionKey
+   );
+   // Store decrypted master key
    
-   // Decrypt message
+   // SimpleCrypto.decrypt(ciphertext, iv)
    const decrypted = await crypto.subtle.decrypt(
-     { name: 'AES-GCM', iv: storedIV },
-     sessionKey,
+     { name: 'AES-GCM', iv: iv },
+     masterKey,
      encryptedContent
    );
    ```
@@ -191,24 +213,28 @@ Sender                          Server                     Receiver
 
 ### Confidentiality ✅
 - **AES-256-GCM**: Military-grade symmetric encryption for message content
-- **RSA-2048**: Strong asymmetric encryption for key exchange
+- **RSA-2048**: Strong asymmetric encryption for master key exchange
 - **Client-side Only**: All encryption/decryption happens in browser
-- **Zero Server Knowledge**: Server never has access to plaintext
+- **Zero Server Knowledge**: Server never has access to plaintext or private keys
 
 ### Integrity ✅
 - **AES-GCM**: Built-in authentication prevents message tampering
 - **Cryptographic Hashing**: SHA-256 used for key derivation
 - **Session Management**: Secure token-based authentication
+- **Message Authentication**: GCM mode provides authenticated encryption
 
 ### Authenticity ✅
 - **RSA Key Pairs**: Verify user identity through public key cryptography
 - **Secure Authentication**: Password hashing with werkzeug security
 - **Session Tokens**: Prevent unauthorized access
+- **Public Key Infrastructure**: Users verified by their registered public keys
 
-### Forward Secrecy ✅
-- **Unique Session Keys**: Each conversation uses separate AES keys
-- **Ephemeral Keys**: Session keys can be rotated (extensible)
-- **Local Key Storage**: Keys stored only in browser, cleared on logout
+### Key Management ✅
+- **Master Key Approach**: Single AES key per user simplifies key management
+- **Secure Key Exchange**: Master keys encrypted with RSA-2048
+- **Automatic Decryption**: Receivers automatically decrypt and store sender's master key
+- **Local Key Storage**: All private keys stored only in browser localStorage
+- **Key Isolation**: Keys cleared on logout for security
 
 ## 🔍 API Endpoints
 
@@ -231,24 +257,59 @@ Sender                          Server                     Receiver
 ### Manual Testing Workflow
 
 1. **Register two users**:
-   - Open two browser windows/tabs
-   - Register as "alice" in one, "bob" in another
-   - Note: Each user gets a unique RSA key pair
+   - Open two browser windows/tabs (or use incognito mode for second user)
+   - Register as "alice" in one window, "bob" in another
+   - Note: Each user gets a unique RSA key pair and AES master key
 
 2. **Start a conversation**:
-   - In Alice's window, search for "bob"
-   - Click to start a conversation
-   - This generates a shared AES session key
+   - In Alice's window, search for "bob" in the search bar
+   - Click on Bob's username to start a conversation
+   - This prepares the encrypted key exchange
 
 3. **Send encrypted messages**:
-   - Type a message and send
-   - Verify it appears encrypted in network tab
-   - Confirm Bob receives and can decrypt the message
+   - Alice types a message and clicks Send
+   - The message is encrypted with Alice's master AES key
+   - Alice's master key is encrypted with Bob's public RSA key
+   - Both encrypted data sent to server
 
-4. **Verify encryption**:
-   - Check browser DevTools → Network tab
-   - Verify message payloads show only encrypted content
-   - Check database (chat.db) - should only contain ciphertext
+4. **Receive and decrypt**:
+   - Bob opens the conversation with Alice
+   - Bob's browser automatically decrypts Alice's master key using Bob's private RSA key
+   - Bob's browser uses Alice's master key to decrypt all messages from Alice
+   - Messages appear in plaintext for Bob
+
+5. **Verify encryption**:
+   - Open browser DevTools → Network tab
+   - Click on the POST request to `/api/chat/send`
+   - In Request payload, verify `encrypted_content` is base64 gibberish
+   - Verify `encrypted_session_key` is also encrypted (base64 RSA ciphertext)
+   - Check database (see "Viewing Encrypted Messages" section below)
+
+### Viewing Encrypted Messages in Database
+
+You can verify messages are encrypted by viewing the SQLite database:
+
+```bash
+# Windows Command Prompt
+cd backend
+sqlite3 chat.db
+```
+
+Then run:
+```sql
+-- View all messages
+SELECT id, sender_username, receiver_username, 
+       substr(encrypted_content, 1, 50) as encrypted_preview,
+       timestamp 
+FROM messages;
+
+-- Exit
+.exit
+```
+
+**Expected output:** You should see base64-encoded gibberish, not plaintext messages.
+
+Alternatively, use **DB Browser for SQLite** (GUI tool): https://sqlitebrowser.org/
 
 ### Security Testing
 
@@ -260,19 +321,25 @@ Sender                          Server                     Receiver
 ## 🚧 Known Limitations & Future Improvements
 
 ### Current Limitations
-1. **Key Exchange**: Simplified key exchange (assumes users can establish session keys)
-2. **Key Rotation**: No automatic key rotation implementation
+1. **Single Master Key**: Each user has one master key (not per-conversation keys)
+2. **No Key Rotation**: Master keys don't automatically rotate
 3. **Group Chat**: Currently supports only 1:1 conversations
 4. **File Sharing**: No encrypted file transfer capability
 5. **Message Persistence**: Keys lost if localStorage is cleared
+6. **No Message Editing**: Cannot edit or delete sent messages
+7. **Limited Forward Secrecy**: Master key reused across all messages
 
 ### Potential Improvements
 1. **Signal Protocol**: Implement Double Ratchet for perfect forward secrecy
-2. **WebRTC**: Direct peer-to-peer messaging
-3. **PWA Support**: Offline capability and mobile app experience
-4. **Key Backup**: Secure key backup and recovery system
-5. **WebSocket**: Real-time message delivery
-6. **File Encryption**: Support for encrypted file sharing
+2. **Per-Conversation Keys**: Generate unique session keys per conversation
+3. **Key Rotation**: Automatic periodic key rotation
+4. **WebRTC**: Direct peer-to-peer messaging
+5. **PWA Support**: Offline capability and mobile app experience
+6. **Key Backup**: Secure key backup and recovery system (encrypted cloud backup)
+7. **WebSocket**: Real-time message delivery notifications
+8. **File Encryption**: Support for encrypted file/image sharing
+9. **Message Status**: Read receipts and delivery confirmation
+10. **Multi-Device**: Sync encrypted messages across devices
 
 ## 📋 Troubleshooting
 
@@ -280,22 +347,51 @@ Sender                          Server                     Receiver
 
 1. **CORS Errors**:
    - Ensure backend is running on port 5000
-   - Check CORS configuration in Flask app
+   - Check CORS is enabled in Flask app (already configured)
+   - Verify frontend is accessing `http://localhost:5000`
 
 2. **Crypto API Not Available**:
    - Use HTTPS or localhost (required for Web Crypto API)
-   - Ensure modern browser support
+   - Ensure modern browser support (Chrome 37+, Firefox 34+, Safari 11+)
+   - Check browser console for detailed errors
 
-3. **Key Not Found Errors**:
-   - Clear localStorage and re-register
-   - Ensure both users are registered before starting conversation
+3. **"Could not decrypt message" Errors**:
+   - This is normal for old messages before key exchange
+   - Send a new message to establish encrypted session key
+   - Receiver will auto-decrypt sender's master key on first message
 
 4. **Database Issues**:
-   - Delete `chat.db` file and restart backend
-   - Check Python dependencies are installed
+   - Delete `chat.db` file and restart backend to recreate
+   - Check Python dependencies are installed (`pip install -r requirements.txt`)
+   - Verify SQLite3 is available on your system
 
-### Debug Mode
-Set `FLASK_ENV=development` in `.env` file for detailed error messages.
+5. **Registration Fails (500 Error)**:
+   - Check backend terminal for Python errors
+   - Ensure database is writable
+   - Verify all required fields are provided
+
+6. **Keys Lost After Logout**:
+   - This is expected behavior (keys cleared from localStorage)
+   - Re-login and send new message to re-establish encryption
+   - Consider implementing key backup for production use
+
+### Debug Commands
+
+```bash
+# Check if backend is running
+curl http://localhost:5000/api/health
+
+# View database contents
+cd backend
+sqlite3 chat.db "SELECT * FROM users;"
+
+# Check frontend dependencies
+cd frontend
+npm list
+
+# Clear browser data
+# Open DevTools (F12) → Application → Clear Storage → Clear site data
+```
 
 ## 📄 License
 
