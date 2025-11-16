@@ -6,6 +6,7 @@ function Login({ onLogin, onSwitchToRegister }) {
     password: ''
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -45,6 +46,7 @@ function Login({ onLogin, onSwitchToRegister }) {
           placeholder="Enter your username"
           required
           disabled={isLoading}
+          autoComplete="username"
         />
       </div>
 
@@ -52,17 +54,44 @@ function Login({ onLogin, onSwitchToRegister }) {
         <label className="form-label" htmlFor="password">
           Password
         </label>
-        <input
-          type="password"
-          id="password"
-          name="password"
-          className="form-input"
-          value={formData.password}
-          onChange={handleChange}
-          placeholder="Enter your password"
-          required
-          disabled={isLoading}
-        />
+        <div style={{ position: 'relative' }}>
+          <input
+            type={showPassword ? 'text' : 'password'}
+            id="password"
+            name="password"
+            className="form-input"
+            style={{ paddingRight: '45px' }}
+            value={formData.password}
+            onChange={handleChange}
+            placeholder="Enter your password"
+            required
+            disabled={isLoading}
+            autoComplete="current-password"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            style={{
+              position: 'absolute',
+              right: '12px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--text-secondary)',
+              fontSize: '18px',
+              padding: '4px 8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            disabled={isLoading}
+            title={showPassword ? 'Hide password' : 'Show password'}
+          >
+            {showPassword ? '👁️' : '👁️‍🗨️'}
+          </button>
+        </div>
       </div>
 
       <button 
@@ -86,7 +115,7 @@ function Login({ onLogin, onSwitchToRegister }) {
         onClick={onSwitchToRegister}
         disabled={isLoading}
       >
-        Create Account
+        Create New Account
       </button>
     </form>
   );

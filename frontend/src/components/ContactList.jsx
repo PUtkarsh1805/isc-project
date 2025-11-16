@@ -52,125 +52,109 @@ function ContactList({
   };
 
   return (
-    <div className="conversations">
+    <>
       {/* Search Input */}
-      <div style={{ padding: '15px 20px', borderBottom: '1px solid rgba(226, 232, 240, 0.3)' }}>
+      <div className="search-container">
         <input
           type="text"
           className="search-input"
-          placeholder="Search users to start chatting..."
+          placeholder="Search or start new chat"
           value={searchQuery}
           onChange={(e) => handleSearch(e.target.value)}
         />
       </div>
 
-      {/* Search Results */}
-      {searchQuery && (
-        <div>
-          <div style={{ 
-            padding: '10px 20px', 
-            fontSize: '12px', 
-            fontWeight: '600', 
-            color: '#718096',
-            background: 'rgba(247, 250, 252, 0.5)' 
-          }}>
-            {isSearching ? 'Searching...' : `Search Results for "${searchQuery}"`}
-          </div>
-          
-          {!isSearching && searchResults.length === 0 && searchQuery.length >= 2 && (
-            <div style={{ 
-              padding: '15px 20px', 
-              fontSize: '14px', 
-              color: '#718096',
-              textAlign: 'center' 
-            }}>
-              No users found
+      <div className="conversations">
+        {/* Search Results */}
+        {searchQuery && (
+          <>
+            <div className="conversations-section-header">
+              {isSearching ? 'Searching...' : 'Search Results'}
             </div>
-          )}
-          
-          {searchResults.map((username) => (
-            <div
-              key={username}
-              className="conversation-item"
-              onClick={() => handleStartConversation(username)}
-              style={{ cursor: 'pointer' }}
-            >
-              <div className="conversation-name">
-                {username}
-                <span style={{ 
-                  marginLeft: '8px', 
-                  fontSize: '11px', 
-                  color: '#667eea',
-                  fontWeight: '500' 
-                }}>
-                  + Start Chat
-                </span>
+            
+            {!isSearching && searchResults.length === 0 && searchQuery.length >= 2 && (
+              <div className="conversations-empty">
+                <div className="conversations-empty-icon">🔍</div>
+                <p>No users found matching "{searchQuery}"</p>
               </div>
-              <div className="conversation-time">New conversation</div>
-            </div>
-          ))}
-          
-          {searchResults.length > 0 && (
-            <div style={{ 
-              padding: '10px 20px', 
-              borderBottom: '1px solid rgba(226, 232, 240, 0.3)',
-              background: 'rgba(247, 250, 252, 0.3)' 
-            }}></div>
-          )}
-        </div>
-      )}
-
-      {/* Existing Conversations */}
-      {!searchQuery && (
-        <>
-          {conversations.length > 0 && (
-            <div style={{ 
-              padding: '10px 20px', 
-              fontSize: '12px', 
-              fontWeight: '600', 
-              color: '#718096',
-              background: 'rgba(247, 250, 252, 0.5)' 
-            }}>
-              Recent Conversations
-            </div>
-          )}
-          
-          {conversations.length === 0 ? (
-            <div style={{ 
-              padding: '30px 20px', 
-              textAlign: 'center', 
-              color: '#718096',
-              fontSize: '14px' 
-            }}>
-              <div style={{ fontSize: '24px', marginBottom: '10px' }}>💬</div>
-              <p>No conversations yet</p>
-              <p style={{ fontSize: '12px', marginTop: '5px' }}>
-                Search for users above to start chatting
-              </p>
-            </div>
-          ) : (
-            conversations.map((conversation) => (
+            )}
+            
+            {searchResults.map((username) => (
               <div
-                key={conversation.contact_username}
-                className={`conversation-item ${
-                  activeConversation?.contact_username === conversation.contact_username 
-                    ? 'active' 
-                    : ''
-                }`}
-                onClick={() => onSelectConversation(conversation)}
+                key={username}
+                className="conversation-item"
+                onClick={() => handleStartConversation(username)}
               >
-                <div className="conversation-name">
-                  {conversation.contact_username}
-                </div>
-                <div className="conversation-time">
-                  {formatTime(conversation.last_message_time)}
+                <div className="conversation-details">
+                  <div className="conversation-name">
+                    <span>{username}</span>
+                    <span style={{ 
+                      fontSize: '11px', 
+                      color: 'var(--accent-green)',
+                      fontWeight: '500' 
+                    }}>
+                      New
+                    </span>
+                  </div>
+                  <div className="conversation-preview">
+                    Start encrypted conversation
+                  </div>
                 </div>
               </div>
-            ))
-          )}
-        </>
-      )}
-    </div>
+            ))}
+          </>
+        )}
+
+        {/* Existing Conversations */}
+        {!searchQuery && (
+          <>
+            {conversations.length > 0 && (
+              <div className="conversations-section-header">
+                Chats
+              </div>
+            )}
+            
+            {conversations.length === 0 ? (
+              <div className="conversations-empty">
+                <div className="conversations-empty-icon">💬</div>
+                <h4 style={{ 
+                  color: 'var(--text-primary)', 
+                  marginBottom: '8px',
+                  fontWeight: '400' 
+                }}>
+                  No conversations yet
+                </h4>
+                <p>Search for users to start chatting</p>
+              </div>
+            ) : (
+              conversations.map((conversation) => (
+                <div
+                  key={conversation.contact_username}
+                  className={`conversation-item ${
+                    activeConversation?.contact_username === conversation.contact_username 
+                      ? 'active' 
+                      : ''
+                  }`}
+                  onClick={() => onSelectConversation(conversation)}
+                >
+                  <div className="conversation-details">
+                    <div className="conversation-name">
+                      <span>{conversation.contact_username}</span>
+                      <span className="conversation-time">
+                        {formatTime(conversation.last_message_time)}
+                      </span>
+                    </div>
+                    <div className="conversation-preview">
+                      Tap to view messages
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </>
+        )}
+      </div>
+    </>
   );
 }
 

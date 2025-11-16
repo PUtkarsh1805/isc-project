@@ -8,6 +8,8 @@ function Register({ onRegister, onSwitchToLogin }) {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -81,9 +83,14 @@ function Register({ onRegister, onSwitchToLogin }) {
           placeholder="Choose a username"
           required
           disabled={isLoading}
+          autoComplete="username"
         />
         {errors.username && (
-          <div className="error-message" style={{ marginTop: '5px', fontSize: '12px' }}>
+          <div style={{ 
+            marginTop: '6px', 
+            fontSize: '12px',
+            color: '#ef4444' 
+          }}>
             {errors.username}
           </div>
         )}
@@ -93,19 +100,50 @@ function Register({ onRegister, onSwitchToLogin }) {
         <label className="form-label" htmlFor="password">
           Password
         </label>
-        <input
-          type="password"
-          id="password"
-          name="password"
-          className="form-input"
-          value={formData.password}
-          onChange={handleChange}
-          placeholder="Create a password"
-          required
-          disabled={isLoading}
-        />
+        <div style={{ position: 'relative' }}>
+          <input
+            type={showPassword ? 'text' : 'password'}
+            id="password"
+            name="password"
+            className="form-input"
+            style={{ paddingRight: '45px' }}
+            value={formData.password}
+            onChange={handleChange}
+            placeholder="Create a password"
+            required
+            disabled={isLoading}
+            autoComplete="new-password"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            style={{
+              position: 'absolute',
+              right: '12px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--text-secondary)',
+              fontSize: '18px',
+              padding: '4px 8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            disabled={isLoading}
+            title={showPassword ? 'Hide password' : 'Show password'}
+          >
+            {showPassword ? '👁️' : '👁️‍🗨️'}
+          </button>
+        </div>
         {errors.password && (
-          <div className="error-message" style={{ marginTop: '5px', fontSize: '12px' }}>
+          <div style={{ 
+            marginTop: '6px', 
+            fontSize: '12px',
+            color: '#ef4444' 
+          }}>
             {errors.password}
           </div>
         )}
@@ -115,33 +153,57 @@ function Register({ onRegister, onSwitchToLogin }) {
         <label className="form-label" htmlFor="confirmPassword">
           Confirm Password
         </label>
-        <input
-          type="password"
-          id="confirmPassword"
-          name="confirmPassword"
-          className="form-input"
-          value={formData.confirmPassword}
-          onChange={handleChange}
-          placeholder="Confirm your password"
-          required
-          disabled={isLoading}
-        />
+        <div style={{ position: 'relative' }}>
+          <input
+            type={showConfirmPassword ? 'text' : 'password'}
+            id="confirmPassword"
+            name="confirmPassword"
+            className="form-input"
+            style={{ paddingRight: '45px' }}
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            placeholder="Confirm your password"
+            required
+            disabled={isLoading}
+            autoComplete="new-password"
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            style={{
+              position: 'absolute',
+              right: '12px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--text-secondary)',
+              fontSize: '18px',
+              padding: '4px 8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            disabled={isLoading}
+            title={showConfirmPassword ? 'Hide password' : 'Show password'}
+          >
+            {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
+          </button>
+        </div>
         {errors.confirmPassword && (
-          <div className="error-message" style={{ marginTop: '5px', fontSize: '12px' }}>
+          <div style={{ 
+            marginTop: '6px', 
+            fontSize: '12px',
+            color: '#ef4444' 
+          }}>
             {errors.confirmPassword}
           </div>
         )}
       </div>
 
-      <div className="security-info" style={{ 
-        background: 'rgba(102, 126, 234, 0.1)', 
-        padding: '10px', 
-        borderRadius: '8px', 
-        marginBottom: '20px',
-        fontSize: '12px',
-        color: '#4a5568'
-      }}>
-        🔒 Your encryption keys will be generated locally and never leave your device
+      <div className="security-info">
+        🔒 Your encryption keys will be generated locally and stored securely on your device
       </div>
 
       <button 

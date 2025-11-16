@@ -219,7 +219,7 @@ function ChatWindow({ user, onLogout }) {
           
           <div className="security-badge">
             <span className="security-icon">🔒</span>
-            <span>End-to-End Encrypted (Simplified)</span>
+            <span>End-to-End Encrypted</span>
           </div>
         </div>
 
@@ -248,11 +248,12 @@ function ChatWindow({ user, onLogout }) {
                 </div>
               ) : messages.length === 0 ? (
                 <div className="empty-chat">
-                  <div>
+                  <div className="empty-chat-content">
                     <div className="lock-icon">🔒</div>
-                    <p>Start your encrypted conversation with {activeConversation.contact_username}</p>
-                    <p style={{ fontSize: '14px', opacity: 0.7 }}>
-                      Messages are end-to-end encrypted and can only be read by you and the recipient.
+                    <h3>Your messages are end-to-end encrypted</h3>
+                    <p>Send a message to start your encrypted conversation with {activeConversation.contact_username}</p>
+                    <p style={{ fontSize: '12px', marginTop: '12px' }}>
+                      Only you and the recipient can read these messages.
                     </p>
                   </div>
                 </div>
@@ -263,8 +264,13 @@ function ChatWindow({ user, onLogout }) {
                       <div className="message-content">
                         {message.decrypted_content}
                         {message.decryption_failed && (
-                          <div style={{ fontSize: '11px', opacity: 0.7, marginTop: '4px' }}>
-                            ⚠️ Old message - send new message to establish encryption
+                          <div style={{ 
+                            fontSize: '11px', 
+                            opacity: 0.7, 
+                            marginTop: '4px',
+                            color: '#ef4444' 
+                          }}>
+                            ⚠️ Decryption failed - key may have changed
                           </div>
                         )}
                       </div>
@@ -286,7 +292,7 @@ function ChatWindow({ user, onLogout }) {
                   className="message-input"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder={`Send encrypted message to ${activeConversation.contact_username}...`}
+                  placeholder="Type a message"
                   disabled={isSending}
                   autoFocus
                 />
@@ -294,39 +300,26 @@ function ChatWindow({ user, onLogout }) {
                   type="submit" 
                   className="send-btn"
                   disabled={!newMessage.trim() || isSending}
+                  title="Send message"
                 >
-                  {isSending ? '...' : 'Send'}
+                  {isSending ? '⏳' : '➤'}
                 </button>
               </form>
             </div>
           </>
         ) : (
           <div className="empty-chat">
-            <div>
+            <div className="empty-chat-content">
               <div className="lock-icon">💬</div>
-              <h3>Welcome to E2EE Chat (Simplified)</h3>
-              <p>Select a conversation or search for users to start chatting securely.</p>
-              <p style={{ fontSize: '14px', opacity: 0.7, marginTop: '15px' }}>
-                🔒 All messages are encrypted with a master session key
+              <h3>E2EE Chat</h3>
+              <p>Select a conversation or search for users to start a secure chat.</p>
+              <div className="security-info" style={{ marginTop: '24px', textAlign: 'left' }}>
+                🔒 All messages are end-to-end encrypted
                 <br />
-                🔑 New messages will work immediately
-              </p>
-              <button 
-                onClick={() => window.SimpleCrypto?.clearAll()}
-                style={{ 
-                  marginTop: '15px', 
-                  padding: '8px 16px', 
-                  fontSize: '13px',
-                  background: '#e53e3e',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: '600'
-                }}
-              >
-                Reset Keys
-              </button>
+                🔑 Encryption keys are generated locally
+                <br />
+                🛡️ No one can read your messages except you and the recipient
+              </div>
             </div>
           </div>
         )}

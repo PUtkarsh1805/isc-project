@@ -141,9 +141,9 @@ function App() {
   return (
     <div className="container">
       {currentView === 'login' && (
-        <div className="card auth-container">
+        <div className="card auth-container fade-in">
           <h1 className="app-title">🔒 E2EE Chat</h1>
-          <p className="app-subtitle">End-to-End Encrypted Messaging</p>
+          <p className="app-subtitle">Secure End-to-End Encrypted Messaging</p>
           
           {error && <div className="error-message">{error}</div>}
           
@@ -158,7 +158,7 @@ function App() {
       )}
 
       {currentView === 'register' && (
-        <div className="card auth-container">
+        <div className="card auth-container fade-in">
           <h1 className="app-title">🔒 E2EE Chat</h1>
           <p className="app-subtitle">Create Your Secure Account</p>
           
@@ -175,7 +175,7 @@ function App() {
       )}
 
       {currentView === 'chat' && user && (
-        <div className="card chat-container">
+        <div className="card chat-container fade-in">
           <ChatWindow 
             user={user} 
             onLogout={handleLogout} 
