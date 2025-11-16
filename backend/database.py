@@ -2,6 +2,7 @@ import sqlite3
 import json
 from datetime import datetime
 from typing import List, Dict, Optional
+import pytz
 
 class Database:
     def __init__(self, db_path='chat.db'):
@@ -111,9 +112,13 @@ class Database:
             conn = self.get_connection()
             cursor = conn.cursor()
             
+            # Get current time in IST
+            ist = pytz.timezone('Asia/Kolkata')
+            current_time = datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')
+            
             cursor.execute(
-                'INSERT INTO messages (sender_username, receiver_username, encrypted_content, iv, encrypted_session_key) VALUES (?, ?, ?, ?, ?)',
-                (sender, receiver, encrypted_content, iv, encrypted_session_key)
+                'INSERT INTO messages (sender_username, receiver_username, encrypted_content, iv, encrypted_session_key, timestamp) VALUES (?, ?, ?, ?, ?, ?)',
+                (sender, receiver, encrypted_content, iv, encrypted_session_key, current_time)
             )
             
             conn.commit()
